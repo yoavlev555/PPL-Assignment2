@@ -28,6 +28,7 @@ import { Sexp, Token } from "s-expression";
 ;; <cexp> ::= <number>                      / NumExp(val:number)
 ;;         |  <boolean>                     / BoolExp(val:boolean)
 ;;         |  <string>                      / StrExp(val:string)
+;;         |  <prim-op>                     / PrimOp(op:string)
 ;;         |  ( lambda ( <var>* ) <cexp>+ ) / ProcExp(args:VarDecl[], body:CExp[]))
 ;;         |  ( if <cexp> <cexp> <cexp> )   / IfExp(test: CExp, then: CExp, alt: CExp)
 ;;         |  ( let ( binding* ) <cexp>+ )  / LetExp(bindings:Binding[], body:CExp[]))
@@ -35,7 +36,7 @@ import { Sexp, Token } from "s-expression";
 ;;         |  ( <cexp> <cexp>* )            / AppExp(operator:CExp, operands:CExp[]))
 ;; <binding>  ::= ( <var> <cexp> )           / Binding(var:VarDecl, val:Cexp)
 ;; <prim-op>  ::= + | - | * | / | < | > | = | not |  and | or | eq? | string=?
-;;                  | cons | car | cdr | pair? | number? | list 
+;;                  | cons | car | cdr | dict | get | dict? | pair? | number? | list 
 ;;                  | boolean? | symbol? | string?      ##### L3
 ;; <num-exp>  ::= a number token
 ;; <bool-exp> ::= #t | #f
@@ -202,12 +203,12 @@ export const parseL31Atomic = (token: Token): Result<CExp> =>
 /*
     ;; <prim-op>  ::= + | - | * | / | < | > | = | not | and | or | eq? | string=?
     ;;                  | cons | car | cdr | pair? | number? | list
-    ;;                  | boolean? | symbol? | string?      ##### L3
+    ;;                  | boolean? | symbol? | string? | dict | get | dict?      ##### L3
 */
 const isPrimitiveOp = (x: string): boolean =>
     ["+", "-", "*", "/", ">", "<", "=", "not", "and", "or",
      "eq?", "string=?", "cons", "car", "cdr", "list", "pair?",
-     "number?", "boolean?", "symbol?", "string?"].includes(x);
+     "number?", "boolean?", "symbol?", "string?", "get", "dict", "dict?"].includes(x);
 
 const isSpecialForm = (x: string): boolean =>
     ["if", "lambda", "let", "quote"].includes(x);

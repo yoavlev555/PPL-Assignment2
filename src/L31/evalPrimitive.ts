@@ -1,6 +1,6 @@
 import { reduce } from "ramda";
 import { PrimOp } from "./L31-ast";
-import { isCompoundSExp, isEmptySExp, isSymbolSExp, makeCompoundSExp, makeEmptySExp, CompoundSExp, EmptySExp, Value } from "./L31-value";
+import { isCompoundSExp, isEmptySExp, isSymbolSExp, makeCompoundSExp, makeEmptySExp, CompoundSExp, EmptySExp, Value, SExpValue } from "./L31-value";
 import { List, allT, first, isNonEmptyList, rest } from '../shared/list';
 import { isBoolean, isNumber, isString } from "../shared/type-predicates";
 import { Result, makeOk, makeFailure } from "../shared/result";
@@ -32,8 +32,42 @@ export const applyPrimitive = (proc: PrimOp, args: Value[]): Result<Value> =>
     proc.op === "boolean?" ? makeOk(typeof (args[0]) === 'boolean') :
     proc.op === "symbol?" ? makeOk(isSymbolSExp(args[0])) :
     proc.op === "string?" ? makeOk(isString(args[0])) :
-    proc.op === "dict" ? makeOk(allT(isNonEmptyList, args)) : //TODO
+    proc.op === "dict" ? evalDict(args) :
+    proc.op === "get" ? evalGet(args) :
+    //proc.op === "dict?" ? evalDictQ(args) : TODO
     makeFailure(`Bad primitive op: ${format(proc.op)}`);
+
+// Helper functions Q2.1c
+// dict
+const evalDict = (args: Value[]): Result<Value> => {
+    if (args.length !== 1) return makeFailure("dict expects one argument");
+    return makeOk(args[0]); 
+};
+
+// get
+const evalGet = (args: Value[]): Result<Value> => {
+    if (args.length !== 2) return makeFailure("get expects 2 arguments");
+    const dict = args[0];
+    const key = args[1];
+
+    if (!isCompoundSExp(dict) && !isEmptySExp(dict))
+        return makeFailure("get expects a quoted list as first argument");
+
+    if (!isSymbolSExp(key))
+        return makeFailure("get expects a symbol as key");
+
+    // Search for a pair (key . val)
+    let curr: SExpValue | CompoundSExp | EmptySExp = dict;
+    while (isCompoundSExp(curr)) {
+        const pair = curr.val1;
+        if (isCompoundSExp(pair) && isSymbolSExp(pair.val1)) {
+            if (pair.val1.val === key.val) return makeOk(pair.val2);
+        }
+        curr = curr.val2;
+    }
+
+    return makeFailure(`Key ${key.val} not found`);
+};
 
 const minusPrim = (args: Value[]): Result<number> => {
     // TODO complete

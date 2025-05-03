@@ -34,10 +34,10 @@ export const applyPrimitive = (proc: PrimOp, args: Value[]): Result<Value> =>
     proc.op === "string?" ? makeOk(isString(args[0])) :
     proc.op === "dict" ? evalDict(args) :
     proc.op === "get" ? evalGet(args) :
-    //proc.op === "dict?" ? evalDictQ(args) : TODO
+    proc.op === "dict?" ? evalDictQ(args) : 
     makeFailure(`Bad primitive op: ${format(proc.op)}`);
 
-// Helper functions Q2.1c
+// Q2.1c
 // dict
 const evalDict = (args: Value[]): Result<Value> => {
     if (args.length !== 1) return makeFailure("dict expects one argument");
@@ -68,6 +68,33 @@ const evalGet = (args: Value[]): Result<Value> => {
 
     return makeFailure(`Key ${key.val} not found`);
 };
+
+// dict?
+const evalDictQ = (args: Value[]): Result<Value> => {
+    if (args.length !== 1) return makeFailure("dict? expects one argument");
+
+    // Helper function
+    const isPairList = (v: Value): boolean => {
+        // Base case
+        if (isEmptySExp(v)) 
+            return true;
+        
+        else if (isCompoundSExp(v)) { 
+            // check head
+            if (!isCompoundSExp(v.val1)) 
+                return false;
+
+            // Recursively check whole list
+            return isPairList(v.val2);
+        }
+
+        else 
+            return false;
+    };
+
+    return makeOk(isPairList(args[0])); 
+};
+
 
 const minusPrim = (args: Value[]): Result<number> => {
     // TODO complete

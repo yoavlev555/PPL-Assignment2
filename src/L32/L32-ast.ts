@@ -260,11 +260,10 @@ const parseDictExp = (bindings: Sexp): Result<DictExp> => {
     if (!isGoodBindings(bindings)){
         return makeFailure('Malformed bindings in "dict" expression')
     }
-    const vars = map(pair => pair[0] , bindings)
-    const valsResult = mapResult(parseL32CExp, map(second, bindings))
+    const vars = map(pair => pair[0], bindings);
+    const valsResult = mapResult(parseL32CExp, map(second, bindings));
     const bindingsResult = mapv(valsResult, (vals: CExp[]) => zipWith(makeBinding, vars, vals));
-    return bind(bindingsResult, (x: Binding[]) => makeOk(makeDictExp(x)));
- 
+    return mapv(bindingsResult, (bindings: Binding[]) => makeDictExp(bindings)
 }
 
 // sexps has the shape (quote <sexp>)

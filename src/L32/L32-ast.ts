@@ -173,7 +173,7 @@ export const parseL32SpecialForm = (op: Sexp, params: Sexp[]): Result<CExp> =>
         isNonEmptyList<Sexp>(params) ? parseLitExp(first(params)) :
         makeFailure(`Bad quote exp: ${params}`) :
     op === "dict" ?
-        isNonEmptyList<Sexp>(params) ? parseDictExp(first(params)) :
+        isNonEmptyList<Sexp>(params) ? parseDictExp(params) :
         makeFailure(`Bad dict exp: ${params}`) :
 
     makeFailure("Never");
@@ -256,14 +256,14 @@ const parseLetExp = (bindings: Sexp, body: Sexp[]): Result<LetExp> => {
                      makeLetExp(bindings, body)));
 }
 
-const parseDictExp = (bindings: Sexp): Result<DictExp> => {
+const parseDictExp = (bindings: Sexp[]): Result<DictExp> => {
     if (!isGoodBindings(bindings)){
         return makeFailure('Malformed bindings in "dict" expression')
     }
     const vars = map(pair => pair[0], bindings);
     const valsResult = mapResult(parseL32CExp, map(second, bindings));
     const bindingsResult = mapv(valsResult, (vals: CExp[]) => zipWith(makeBinding, vars, vals));
-    return mapv(bindingsResult, (bindings: Binding[]) => makeDictExp(bindings)
+    return mapv(bindingsResult, (bindings: Binding[]) => makeDictExp(bindings))
 }
 
 // sexps has the shape (quote <sexp>)
@@ -334,4 +334,5 @@ export const unparseL32 = (exp: Program | Exp): string =>
     isLetExp(exp) ? unparseLetExp(exp) :
     isDefineExp(exp) ? `(define ${exp.var.var} ${unparseL32(exp.val)})` :
     isProgram(exp) ? `(L32 ${unparseLExps(exp.exps)})` :
+    isDictExp(exp) ? `(dict ${map((b: Binding) => `(${b.var.var} ${unparseL32(b.val)})`, exp.bindings).join(" ")})` :
     exp;

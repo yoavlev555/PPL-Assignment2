@@ -1,6 +1,6 @@
 import { reduce } from "ramda";
 import { PrimOp } from "./L31-ast";
-import { isCompoundSExp, isEmptySExp, isSymbolSExp, makeCompoundSExp, makeEmptySExp, CompoundSExp, EmptySExp, Value } from "./L31-value";
+import { isCompoundSExp, isEmptySExp, isSymbolSExp, makeCompoundSExp, makeEmptySExp, CompoundSExp, EmptySExp, Value, SExpValue, SymbolSExp } from "./L31-value";
 import { List, allT, first, isNonEmptyList, rest } from '../shared/list';
 import { isBoolean, isNumber, isString } from "../shared/type-predicates";
 import { Result, makeOk, makeFailure } from "../shared/result";
@@ -32,7 +32,77 @@ export const applyPrimitive = (proc: PrimOp, args: Value[]): Result<Value> =>
     proc.op === "boolean?" ? makeOk(typeof (args[0]) === 'boolean') :
     proc.op === "symbol?" ? makeOk(isSymbolSExp(args[0])) :
     proc.op === "string?" ? makeOk(isString(args[0])) :
+    proc.op === "dict" ? evalDict(args) :
+    proc.op === "get" ? evalGet(args) :
+    proc.op === "dict?" ? makeOk(isDict(args)) : 
     makeFailure(`Bad primitive op: ${format(proc.op)}`);
+
+// Q2.1c
+// dict
+const evalDict = (args: Value[]): Result<Value> => {
+    if(isDict(args)){
+        return makeOk(args[0]);
+    }
+    return makeFailure("Argument type should be a dictionary");
+};
+
+// get
+const evalGet = (args: Value[]): Result<Value> => {
+    if (args.length !== 2) return makeFailure("get expects 2 arguments");
+    const dict = args[0];
+    const key = args[1];
+
+    if (!isCompoundSExp(dict) && !isEmptySExp(dict))
+        return makeFailure("get expects a quoted list as first argument");
+
+    else if (!isSymbolSExp(key))
+        return makeFailure("get expects a symbol as key");
+
+    else if(!isCompoundSExp(dict)){
+        return makeFailure("Argument type should be a dictionary");
+    }
+
+    return getValueInDict(dict, key)
+};
+
+const getValueInDict = (dict: CompoundSExp, key: SymbolSExp): Result<Value> => {
+    if (isEmptySExp(dict)) {
+        return makeFailure(`Key ${key.val} not found`);
+    } else if (isPairPrim(dict.val1) && isSymbolSExp(dict.val1.val1) && key.val === dict.val1.val1.val) {
+        return makeOk(dict.val1.val2);
+    } else if (isPairPrim(dict.val2)) {
+        return getValueInDict(dict.val2, key);
+    }
+    return makeFailure(`Key ${key.val} not found`);
+};
+
+// dict?
+const isDict = (args: Value[]): boolean => {
+    if (args.length !== 1)
+        return false
+
+    // Helper function
+    const isPairList = (v: Value): boolean => {
+        // Base case
+        if (isEmptySExp(v)) 
+            return true;
+        
+        else if (isCompoundSExp(v)) { 
+            // check head
+            if (!isCompoundSExp(v.val1)) 
+                return false;
+
+            // Recursively check whole list
+            return isPairList(v.val2);
+        }
+
+        else 
+            return false;
+    };
+
+    return isPairList(args[0]); 
+};
+
 
 const minusPrim = (args: Value[]): Result<number> => {
     // TODO complete
@@ -93,5 +163,5 @@ export const listPrim = (vals: List<Value>): EmptySExp | CompoundSExp =>
     isNonEmptyList<Value>(vals) ? makeCompoundSExp(first(vals), listPrim(rest(vals))) :
     makeEmptySExp();
 
-const isPairPrim = (v: Value): boolean =>
+const isPairPrim = (v: Value): v is CompoundSExp =>
     isCompoundSExp(v);

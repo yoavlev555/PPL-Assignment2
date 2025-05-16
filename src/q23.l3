@@ -1,71 +1,72 @@
-  (define make-error 
-    (lambda (msg) 
-      (cons "ErrorExp" msg)
-    )
+(define make-error 
+  (lambda (msg) 
+    (cons "ErrorExp" msg)
   )
+)
 
-  (define is-error? 
-    (lambda (val) 
-      (if (pair? val) 
-          (eq? (car val) "ErrorExp") 
-          #f 
-      ) 
-    )
+(define is-error? 
+  (lambda (val) 
+    (if (pair? val) 
+        (eq? (car val) "ErrorExp") 
+        #f 
+    ) 
   )
+)
 
-  (define bind
-    (lambda (val f)
-      (if (is-error? val)
-          val
-          (f val)
-      )
+(define bind
+  (lambda (val f)
+    (if (is-error? val)
+        val
+        (f val)
     )
   )
+)
 
-  (define get 
-    (lambda (dict key)
-      (if (eq? dict '())
-          (make-error "Error: key is not found")
-          (if (eq? (car (car dict)) key)
-              (cdr (car dict))
-              (get (cdr dict) key)
-          )   
-      )
+(define get 
+  (lambda (dict key)
+    (if (eq? dict '())
+        (make-error "Error: key is not found")
+        (if (eq? (car (car dict)) key)
+            (cdr (car dict))
+            (get (cdr dict) key)
+        )   
     )
   )
+)
 
-  (define dict?
-    (lambda (val)
-      (if (pair? val)
-          (dict?Helper val '())
-          #f
-      )     
-    )
+(define dict?
+  (lambda (val)
+    (if (pair? val)
+        (dict?Helper val '())
+        #f
+    )     
   )
+)
 
-  (define dict?Helper
-    (lambda (val helperDict)
-      (if (eq? val '())
-          #t
-          (if (and (pair? (car val)) 
-                   (or (string? (car (car val)))
-                       (symbol? (car (car val))))
-                   (not (eq? (cdr (car val)) '())))
-              (if (is-error? (get helperDict (car (car val))))
-                  (dict?Helper (cdr val) (cons (car val) helperDict))
-                  #f
-              )
-              #f
-          )
-      )
+(define dict?Helper
+  (lambda (val helperDict)
+    (if (eq? val '())
+        #t
+        (if (and (pair? (car val)) 
+                  (or (string? (car (car val)))
+                      (symbol? (car (car val))))
+                  (not (eq? (cdr (car val)) '())))
+            (if (is-error? (get helperDict (car (car val))))
+                (dict?Helper (cdr val) (cons (car val) helperDict))
+                #f
+            )
+            #f
+        )
     )
   )
+)
 
-  (define dict 
-    (lambda (dictExp)
-      (if (dict? dictExp) 
-          dictExp 
-          (make-error "Error: not a dict")
-      )
+(define dict 
+  (lambda (dictExp)
+    (if (dict? dictExp) 
+        dictExp 
+        (make-error "Error: not a dict")
     )
   )
+)
+

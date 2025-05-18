@@ -1,5 +1,6 @@
 import { CExp, DictExp, Exp, Program, isDictExp, isAppExp, isBoolExp, isNumExp, isStrExp, isVarRef, isLitExp, isPrimOp, isIfExp, isProcExp, isDefineExp, makeAppExp, makeDefineExp,
-    makeLitExp, makeProcExp, makeProgram, makeVarDecl, makeVarRef, makeIfExp, makePrimOp } from './L32/L32-ast';
+    makeLitExp, makeProcExp, makeProgram, makeVarDecl, makeVarRef, makeIfExp, makePrimOp, 
+    isAtomicExp} from './L32/L32-ast';
 
 import { makeSymbolSExp, makeEmptySExp, makeCompoundSExp, SExpValue } from './L32/L32-value';
 
@@ -60,23 +61,31 @@ const convertDictToApp = (dict: DictExp): CExp => {
     return makeAppExp(makeVarRef('dict'), [makeLitExp(quotedBindings)]);
 };
 
-const rewriteCExp = (exp: CExp): CExp => {
-    if (isNumExp(exp) || isBoolExp(exp) || isStrExp(exp) ||
-        isVarRef(exp) || isLitExp(exp) || isPrimOp(exp)) {
-        return exp;
-    } else if (isIfExp(exp)) {
-        return makeIfExp(rewriteCExp(exp.test), rewriteCExp(exp.then), rewriteCExp(exp.alt));
-    } else if (isProcExp(exp)) {
-        return makeProcExp(exp.args, exp.body.map(rewriteCExp));
-    } else if (isAppExp(exp)) {
-        return isDictExp(exp.rator)
-            ? makeAppExp(convertDictToApp(exp.rator), [rewriteCExp(exp.rands[0])])
-            : makeAppExp(rewriteCExp(exp.rator), exp.rands.map(rewriteCExp));
-    } else if (isDictExp(exp)) {
-        return convertDictToApp(exp);
-    }
-    return exp;
-};
+const rewriteCExp = (exp: CExp): CExp =>
+    isAtomicExp(exp) ? exp :
+    isIfExp(exp) ? rewriteIfExp(exp) :
+    isProcExp(exp) ? rewriteProcExp(exp) :
+    isAppExp(exp) ? rewriteAppExp(exp) :
+    isDictExp(exp) ? convertDictToApp(exp) :
+    exp;
+
+const rewriteIfExp = (exp: any): CExp =>
+    makeIfExp(
+        rewriteCExp(exp.test),
+        rewriteCExp(exp.then),
+        rewriteCExp(exp.alt)
+    );
+
+const rewriteProcExp = (exp: any): CExp =>
+    makeProcExp(
+        exp.args,
+        exp.body.map(rewriteCExp)
+    );
+
+const rewriteAppExp = (exp: any): CExp =>
+    isDictExp(exp.rator)
+        ? makeAppExp(convertDictToApp(exp.rator), [rewriteCExp(exp.rands[0])])
+        : makeAppExp(rewriteCExp(exp.rator), exp.rands.map(rewriteCExp));
 
 const rewriteExp = (exp: Exp): Exp =>
     isDefineExp(exp)
